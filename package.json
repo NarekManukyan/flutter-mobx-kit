@@ -7,6 +7,8 @@
   },
   "files": [
     "bin",
+    "skills",
+    "commands",
     "payload",
     "README.md",
     "CHANGELOG.md",

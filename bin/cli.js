@@ -16,7 +16,6 @@ const os = require('os');
 const { execFileSync } = require('child_process');
 
 const PKG_ROOT = path.resolve(__dirname, '..');
-const PAYLOAD = path.join(PKG_ROOT, 'payload');
 const VERSION = require(path.join(PKG_ROOT, 'package.json')).version;
 
 // ---------------------------------------------------------------- output ---
@@ -116,16 +115,19 @@ function detectTools(root) {
 
 // ------------------------------------------------------------- installer ---
 
+// `from` is relative to the package root. skills/ and commands/ sit at the root
+// rather than under payload/ because that is where Claude Code's plugin loader
+// looks for them; everything else is repo-level scaffolding under payload/.
 const PARTS = {
-  agents: { label: 'AGENTS.md (single instruction source)', from: ['AGENTS.md'], to: '.' },
-  skills: { label: 'playbooks', from: ['skills'], to: '.claude/skills' },
-  commands: { label: 'commands', from: ['commands'], to: '.claude/commands' },
-  tool: { label: 'sync_agents.sh', from: ['tool'], to: 'tool' },
-  adr: { label: 'ADRs', from: ['docs/adr'], to: 'docs/adr' },
-  maestro: { label: 'Maestro scaffolding', from: ['.maestro'], to: '.maestro' },
-  test: { label: 'test harness', from: ['test'], to: 'test' },
-  testid: { label: 'TestId helper', from: ['lib'], to: 'lib' },
-  ci: { label: 'CI workflows', from: ['.github/workflows'], to: '.github/workflows' },
+  agents: { label: 'AGENTS.md (single instruction source)', from: 'payload/AGENTS.md', to: '.' },
+  skills: { label: 'playbooks', from: 'skills', to: '.claude/skills' },
+  commands: { label: 'commands', from: 'commands', to: '.claude/commands' },
+  tool: { label: 'sync_agents.sh', from: 'payload/tool', to: 'tool' },
+  adr: { label: 'ADRs', from: 'payload/docs/adr', to: 'docs/adr' },
+  maestro: { label: 'Maestro scaffolding', from: 'payload/.maestro', to: '.maestro' },
+  test: { label: 'test harness', from: 'payload/test', to: 'test' },
+  testid: { label: 'TestId helper', from: 'payload/lib', to: 'lib' },
+  ci: { label: 'CI workflows', from: 'payload/.github/workflows', to: '.github/workflows' },
 };
 
 function substitute(text, vars) {
@@ -138,7 +140,7 @@ const BINARY_EXT = new Set(['.png', '.jpg', '.jpeg', '.gif', '.ttf', '.otf', '.i
 
 function installPart(root, key, vars, opts, report) {
   const part = PARTS[key];
-  const srcRoot = path.join(PAYLOAD, part.from[0]);
+  const srcRoot = path.join(PKG_ROOT, part.from);
   if (!exists(srcRoot)) return;
 
   const isFile = fs.statSync(srcRoot).isFile();
@@ -385,7 +387,7 @@ function cmdDoctor(args) {
   const skillCount = exists(skillsDir)
     ? fs.readdirSync(skillsDir).filter((d) => exists(path.join(skillsDir, d, 'SKILL.md'))).length
     : 0;
-  const shippedSkills = fs.readdirSync(path.join(PAYLOAD, 'skills')).length;
+  const shippedSkills = fs.readdirSync(path.join(PKG_ROOT, 'skills')).length;
   check('playbooks', skillCount >= shippedSkills, `${skillCount}/${shippedSkills} installed`);
 
   const adrDir = path.join(root, 'docs', 'adr');

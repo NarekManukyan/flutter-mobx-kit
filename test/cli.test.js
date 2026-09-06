@@ -130,7 +130,7 @@ test('the E2E scaffolding reflects what actually works on a device', (dir) => {
 });
 
 test('the maestro playbook teaches the device-verified rules', () => {
-  const body = read(ROOT, 'payload', 'skills', 'write-maestro-flow', 'SKILL.md');
+  const body = read(ROOT, 'skills', 'write-maestro-flow', 'SKILL.md');
   for (const rule of [
     /plain Flutter `Key` is invisible to Maestro/i,
     /clearState/,
@@ -261,7 +261,7 @@ test('install.sh installs the global half without npm', (dir) => {
     env: { ...process.env, HOME: home },
   });
 
-  const shipped = fs.readdirSync(path.join(ROOT, 'payload', 'skills'));
+  const shipped = fs.readdirSync(path.join(ROOT, 'skills'));
   for (const name of shipped) {
     assert.ok(
       has(home, '.claude', 'skills', name, 'SKILL.md'),
@@ -303,7 +303,7 @@ test('install scripts are executable and parse', () => {
 });
 
 test('every playbook has usable frontmatter', () => {
-  const skills = path.join(ROOT, 'payload', 'skills');
+  const skills = path.join(ROOT, 'skills');
   const names = fs.readdirSync(skills);
   assert.ok(names.length >= 15, `expected 15+ playbooks, found ${names.length}`);
   for (const name of names) {

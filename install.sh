@@ -16,15 +16,16 @@
 set -euo pipefail
 
 SRC="$(cd "$(dirname "$0")" && pwd)"
-PAYLOAD="$SRC/payload"
 
-[ -d "$PAYLOAD" ] || { echo "error: payload/ not found next to install.sh" >&2; exit 1; }
+for d in skills commands payload; do
+  [ -d "$SRC/$d" ] || { echo "error: $d/ not found next to install.sh" >&2; exit 1; }
+done
 
 mkdir -p "$HOME/.claude/commands" "$HOME/.claude/skills"
 
 echo "Installing commands -> ~/.claude/commands/"
-cp "$PAYLOAD"/commands/*.md "$HOME/.claude/commands/"
-for f in "$PAYLOAD"/commands/*.md; do
+cp "$SRC"/commands/*.md "$HOME/.claude/commands/"
+for f in "$SRC"/commands/*.md; do
   echo "  - /$(basename "$f" .md)"
 done
 
@@ -33,7 +34,7 @@ echo "Installing playbooks -> ~/.claude/skills/"
 # directory still contains a SKILL.md, so Claude Code would register it as a
 # duplicate skill.
 BACKUP_DIR="$HOME/.claude/.flutter-mobx-kit-backups"
-for s in "$PAYLOAD"/skills/*/; do
+for s in "$SRC"/skills/*/; do
   name="$(basename "$s")"
   if [ -d "$HOME/.claude/skills/$name" ]; then
     mkdir -p "$BACKUP_DIR"

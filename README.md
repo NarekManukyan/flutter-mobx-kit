@@ -181,17 +181,18 @@ The two are designed to sit side by side: this kit governs how a feature is buil
 install-remote.sh          curl one-liner: clone + install.sh
 install.sh                 installs the global half into ~/.claude + ~/.local/bin
 bin/cli.js                 the per-repo installer, zero dependencies
-payload/
+
+skills/                    15 playbooks       ┐ at the root because that is where
+commands/                  the 3 commands     ┘ Claude Code's plugin loader looks
+
+payload/                   the per-repo half, copied into a project by `init`
   AGENTS.md                the instruction source, with {{PROJECT_NAME}} / {{APP_ID}}
-  skills/                  15 playbooks
-  commands/                build-feature, qa-feature, sync-agents
   tool/sync_agents.sh      generates the per-tool instruction files
   docs/adr/                17 ADRs + the MADR template
-  .maestro/                config, launch/set-mock subflows, happy-failure-edge templates
+  .maestro/                config, launch/login/start_home subflows, flow templates
   test/helpers/            the widget-test harness
-  lib/core/ui/             TestId — the Semantics identifier helper Maestro needs
+  lib/core/ui/             TestId, the Semantics identifier helper Maestro needs
   .github/workflows/       verify.yml + maestro.yml
-skills/ commands/          symlinks, for the Claude Code marketplace path
 ```
 
 ## Contributing
