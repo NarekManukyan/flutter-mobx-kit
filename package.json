@@ -1,0 +1,44 @@
+{
+  "name": "flutter-mobx-kit",
+  "version": "0.1.0",
+  "description": "Agent toolkit for Flutter + MobX projects: AGENTS.md as the single instruction source, on-demand playbooks, ADRs, a plan-first delivery loop and a three-tier testing contract. Works with Claude Code, Codex, Cursor, Copilot, Gemini and anything else that reads AGENTS.md.",
+  "bin": {
+    "flutter-mobx-kit": "bin/cli.js"
+  },
+  "files": [
+    "bin",
+    "payload",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "flutter",
+    "mobx",
+    "agents",
+    "agents-md",
+    "claude-code",
+    "codex",
+    "cursor",
+    "copilot",
+    "maestro",
+    "adr",
+    "boilerplate"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NarekManukyan/flutter-mobx-kit.git"
+  },
+  "homepage": "https://github.com/NarekManukyan/flutter-mobx-kit#readme",
+  "bugs": {
+    "url": "https://github.com/NarekManukyan/flutter-mobx-kit/issues"
+  },
+  "author": "NarekManukyan",
+  "license": "MIT",
+  "scripts": {
+    "test": "node test/cli.test.js"
+  }
+}

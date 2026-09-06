@@ -1,0 +1,44 @@
+# TEMPLATE — see example_happy.yaml.
+#
+# The failure category proves three things: no crash, the spinner actually
+# stops, and retry recovers once the server does. Assert all three.
+appId: {{APP_ID}}
+name: "Example — server error (failure)"
+tags:
+  - failure
+  - example
+---
+- runFlow: ../../common/start_home.yaml
+
+- runFlow:
+    file: ../../common/set_mock.yaml
+    env:
+      SCENARIO: "serverError"
+
+- swipe:
+    from:
+      id: "feature_content"
+    direction: DOWN
+    duration: 400
+
+- extendedWaitUntil:
+    visible:
+      id: "feature_error_state"
+    timeout: 10000
+
+- assertNotVisible:
+    id: "feature_skeleton"          # the spinner must actually stop
+- assertVisible:
+    id: "feature_error_retry"       # and there must be a way out
+
+- runFlow:
+    file: ../../common/set_mock.yaml
+    env:
+      SCENARIO: "reset"
+
+- tapOn:
+    id: "feature_error_retry"
+- extendedWaitUntil:
+    visible:
+      id: "feature_content"
+    timeout: 10000

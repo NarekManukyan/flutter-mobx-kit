@@ -1,0 +1,53 @@
+# TEMPLATE — see example_happy.yaml.
+#
+# Pick the edges that are real for this feature. The usual suspects: empty
+# result, one item, maximum-length input, offline start, backgrounding
+# mid-request, and a rapid double-tap on the primary action.
+appId: {{APP_ID}}
+name: "Example — empty result and double-tap (edge)"
+tags:
+  - edge
+  - example
+---
+- runFlow: ../../common/start_home.yaml
+
+# 1. Empty is its own state — not the spinner, not the error.
+- runFlow:
+    file: ../../common/set_mock.yaml
+    env:
+      SCENARIO: "empty"
+
+- swipe:
+    from:
+      id: "feature_content"
+    direction: DOWN
+    duration: 400
+
+- extendedWaitUntil:
+    visible:
+      id: "feature_empty_state"
+    timeout: 10000
+- assertNotVisible:
+    id: "feature_skeleton"
+- assertNotVisible:
+    id: "feature_error_state"
+# The primary action stays reachable from empty.
+- assertVisible:
+    id: "feature_primary_action"
+
+# 2. A rapid double-tap must not create two of anything.
+- runFlow:
+    file: ../../common/set_mock.yaml
+    env:
+      SCENARIO: "reset"
+
+- tapOn:
+    id: "feature_primary_action"
+    repeat: 2
+    delay: 80
+- assertVisible:
+    text: "Created item"
+    index: 0
+- assertNotVisible:
+    text: "Created item"
+    index: 1

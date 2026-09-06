@@ -1,0 +1,22 @@
+# Cold launch from a clean slate. Every flow starts here — a flow that depends
+# on the previous flow's state passes locally and fails in CI.
+#
+# `clearState: true` also clears the auth token, so this lands on your login
+# screen, not on the screen under test. Flows that need a signed-in user run
+# `login.yaml` next; `start_home.yaml` does both.
+#
+# SETUP: replace `login_email_field` with a real id from your login screen's
+# `*_keys.dart`. Without a real anchor every flow races the app's startup.
+appId: {{APP_ID}}
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+    permissions:
+      notifications: allow
+      all: unset
+
+- extendedWaitUntil:
+    visible:
+      id: "login_email_field"
+    timeout: 20000

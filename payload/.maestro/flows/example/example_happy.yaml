@@ -1,0 +1,27 @@
+# TEMPLATE — copy this trio into .maestro/flows/{feature}/ and rename the files
+# {feature}_{scenario}_happy|failure|edge.yaml. Delete this example directory
+# once you have a real one.
+#
+# ADR-0015: a feature is not done until all three categories exist.
+appId: {{APP_ID}}
+name: "Example — the intended path (happy)"
+tags:
+  - happy
+  - example
+---
+- runFlow: ../../common/start_home.yaml
+
+# Select on the Key from your feature's *_keys.dart — never on localized text.
+- assertVisible:
+    id: "feature_content"
+- assertNotVisible:
+    id: "feature_skeleton"
+
+- tapOn:
+    id: "feature_primary_action"
+    label: "Do the thing the ticket is about"
+
+- extendedWaitUntil:
+    visible:
+      id: "feature_success_state"
+    timeout: 8000

@@ -1,0 +1,53 @@
+name: Test
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+
+jobs:
+  test:
+    name: Installer tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: ['18', '20', '22']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: node test/cli.test.js
+
+  pack:
+    name: Package installs and runs from the tarball
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # `files` in package.json decides what ships. A payload path missing from
+      # it passes every unit test and breaks for every real user, so the
+      # published artifact is exercised here rather than the working tree.
+      - name: Pack and install globally
+        run: |
+          npm pack --pack-destination=/tmp
+          npm i -g /tmp/flutter-mobx-kit-*.tgz
+
+      - name: Init a fixture project from the installed package
+        run: |
+          mkdir -p /tmp/proj/ios/Runner.xcodeproj
+          printf 'name: ci_app\nenvironment:\n  sdk: ">=3.8.0-0 <4.0.0"\ndependencies:\n  flutter:\n    sdk: flutter\n' > /tmp/proj/pubspec.yaml
+          printf '\t\t\t\tPRODUCT_BUNDLE_IDENTIFIER = io.ci.app;\n' > /tmp/proj/ios/Runner.xcodeproj/project.pbxproj
+          cd /tmp/proj && flutter-mobx-kit init
+
+      - name: Generated files must be in sync
+        run: cd /tmp/proj && flutter-mobx-kit sync --check
+
+      - name: No unsubstituted placeholders survived
+        run: |
+          if grep -rn '{{' /tmp/proj/AGENTS.md /tmp/proj/.maestro /tmp/proj/.claude; then
+            echo "unsubstituted placeholder found"; exit 1
+          fi

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "flutter-mobx-kit",
+  "description": "Flutter + MobX agent toolkit — playbooks, ADRs, plan-first delivery and a three-tier testing contract.",
+  "owner": {
+    "name": "NarekManukyan"
+  },
+  "plugins": [
+    {
+      "name": "flutter-mobx-kit",
+      "description": "13 playbooks, /build-feature and /qa-feature, and the AGENTS.md instruction model. Run `npx flutter-mobx-kit init` in a repo to install the file-level parts (ADRs, Maestro scaffolding, CI, test harness).",
+      "source": "./",
+      "category": "development"
+    }
+  ]
+}

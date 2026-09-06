@@ -1,0 +1,8 @@
+{
+  "name": "flutter-mobx-kit",
+  "description": "Agent toolkit for Flutter + MobX projects: AGENTS.md as the single instruction source, 15 on-demand playbooks (DTO, store, page, use case, API provider, localization, design tokens, tests, Maestro flows), 17 ADRs, a plan-first delivery loop that reads the Jira AC before writing code, and a three-tier testing contract with a happy/failure/edge QA gate.",
+  "version": "0.1.0",
+  "author": {
+    "name": "NarekManukyan"
+  }
+}

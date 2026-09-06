@@ -1,0 +1,4 @@
+node_modules/
+*.tgz
+.DS_Store
+.flutter-mobx-kit-backup/

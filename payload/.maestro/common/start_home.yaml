@@ -1,0 +1,9 @@
+# Launch + sign in + land on the first screen. The starting point for every
+# flow that needs an authenticated user.
+appId: {{APP_ID}}
+---
+- runFlow: launch.yaml
+- runFlow:
+    file: login.yaml
+    env:
+      EMAIL: "qa@example.com"
