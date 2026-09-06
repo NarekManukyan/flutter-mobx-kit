@@ -5,7 +5,7 @@ Agent toolkit for Flutter + MobX projects. One instruction source, playbooks tha
 Works with **Claude Code, Codex, Cursor, Copilot, Gemini, Zed, Amp** — anything that reads `AGENTS.md`.
 
 ```bash
-npx flutter-mobx-kit init
+curl -fsSL https://raw.githubusercontent.com/NarekManukyan/flutter-mobx-kit/main/install-remote.sh | bash
 ```
 
 ---
@@ -98,34 +98,55 @@ Each one lists real alternatives with honest trade-offs, including the downsides
 
 ## Install
 
-### Into a project (recommended)
+The kit has two halves, and they go to different places.
+
+The **playbooks and commands** are global. They live in `~/.claude` and work in every project without touching a repo. The **files a repo owns** (`AGENTS.md`, the ADRs, `.maestro/`, the test harness, the `TestId` helper, the CI workflows) get committed to that repo, so they are installed per project with `flutter-mobx-kit init`.
+
+### Option A: Claude Code marketplace
+
+A real, versioned plugin (`claude plugin update` / `list` / `enable`). Same mechanism from the terminal or from inside Claude Code:
+
+```bash
+claude plugin marketplace add NarekManukyan/flutter-mobx-kit
+claude plugin install flutter-mobx-kit@flutter-mobx-kit
+```
+
+This gives you the playbooks and the `/build-feature`, `/qa-feature` and `/sync-agents` commands. For the per-repo half, use the CLI from Option B or C.
+
+### Option B: one-liner
+
+Clones the kit to `~/.flutter-mobx-kit`, installs the playbooks and commands into `~/.claude`, and puts the CLI on your PATH. Re-run it any time to update.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/NarekManukyan/flutter-mobx-kit/main/install-remote.sh | bash
+```
+
+### Option C: clone
+
+```bash
+git clone https://github.com/NarekManukyan/flutter-mobx-kit ~/.flutter-mobx-kit
+bash ~/.flutter-mobx-kit/install.sh
+```
+
+### Then, in each Flutter repo
 
 ```bash
 cd your-flutter-app
-npx flutter-mobx-kit init
+flutter-mobx-kit init
 ```
 
-Detects your project name and bundle id, installs everything, generates the per-tool instruction files, and prints the melos scripts and dev dependencies to add. It never overwrites an existing file unless you pass `--force`, and `--force` backs the original up to `.flutter-mobx-kit-backup/` first.
+It detects your project name and bundle id, installs the per-repo files, generates the tool instruction files, and prints the melos scripts and dev dependencies you still need to add. It never overwrites an existing file unless you pass `--force`, and `--force` backs the original up to `.flutter-mobx-kit-backup/` first.
 
 ```bash
-npx flutter-mobx-kit init --dry-run          # see what would land
-npx flutter-mobx-kit init --only=skills      # just the playbooks
-npx flutter-mobx-kit doctor                  # what is installed, what is missing
-npx flutter-mobx-kit sync                    # regenerate the tool files
-npx flutter-mobx-kit sync --check            # fail on drift (CI)
-npx flutter-mobx-kit update                  # refresh playbooks to this version
+flutter-mobx-kit init --dry-run          # see what would land
+flutter-mobx-kit init --only=skills      # just the playbooks
+flutter-mobx-kit doctor                  # what is installed, what is missing
+flutter-mobx-kit sync                    # regenerate the tool files
+flutter-mobx-kit sync --check            # fail on drift (CI)
+flutter-mobx-kit update                  # refresh playbooks to this version
 ```
 
-### As a Claude Code plugin
-
-Gives you the playbooks and the `/build-feature` · `/qa-feature` · `/sync-agents` commands globally, without touching a repo:
-
-```
-/plugin marketplace add NarekManukyan/flutter-mobx-kit
-/plugin install flutter-mobx-kit@flutter-mobx-kit
-```
-
-Still run `npx flutter-mobx-kit init` in each repo for the file-level parts — `AGENTS.md`, ADRs, Maestro scaffolding, the test harness and CI.
+Node 18+ is needed for the CLI. The playbooks and commands do not need it.
 
 ## After `init`
 
@@ -157,7 +178,9 @@ The two are designed to sit side by side: this kit governs how a feature is buil
 ## Layout
 
 ```
-bin/cli.js                 the installer — zero dependencies
+install-remote.sh          curl one-liner: clone + install.sh
+install.sh                 installs the global half into ~/.claude + ~/.local/bin
+bin/cli.js                 the per-repo installer, zero dependencies
 payload/
   AGENTS.md                the instruction source, with {{PROJECT_NAME}} / {{APP_ID}}
   skills/                  15 playbooks

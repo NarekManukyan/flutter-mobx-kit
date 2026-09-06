@@ -19,6 +19,37 @@ jobs:
           node-version: ${{ matrix.node }}
       - run: node test/cli.test.js
 
+  shell-install:
+    name: Clone + install.sh (the npm-free path)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Most people install this by cloning, not from npm, so the shell path is
+      # exercised the way they run it: a real HOME, then the CLI from PATH.
+      - name: Install into a throwaway HOME
+        run: |
+          mkdir -p /tmp/home
+          HOME=/tmp/home bash install.sh
+
+      - name: Playbooks, commands and CLI landed
+        run: |
+          test -f /tmp/home/.claude/skills/create-dto/SKILL.md
+          test -f /tmp/home/.claude/commands/build-feature.md
+          test -x /tmp/home/.local/bin/flutter-mobx-kit
+
+      - name: The installed CLI can init a project
+        run: |
+          mkdir -p /tmp/proj/ios/Runner.xcodeproj
+          printf 'name: ci_app\nenvironment:\n  sdk: ">=3.8.0-0 <4.0.0"\ndependencies:\n  flutter:\n    sdk: flutter\n' > /tmp/proj/pubspec.yaml
+          printf '\t\t\t\tPRODUCT_BUNDLE_IDENTIFIER = io.ci.app;\n' > /tmp/proj/ios/Runner.xcodeproj/project.pbxproj
+          cd /tmp/proj && /tmp/home/.local/bin/flutter-mobx-kit init
+          test -f /tmp/proj/AGENTS.md
+          test -f /tmp/proj/lib/core/ui/test_id.dart
+
   pack:
     name: Package installs and runs from the tarball
     runs-on: ubuntu-latest

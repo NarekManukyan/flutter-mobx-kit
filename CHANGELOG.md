@@ -59,8 +59,13 @@ Each of these is baked into the payload so no project repeats them:
   package, so `analyze`, `test`, `format` and `build` silently skip `lib/`
   unless each script runs the root explicitly.
 
-### CLI
+### Install and CLI
 
+- Three install paths, none of which need npm: the Claude Code marketplace,
+  a `curl | bash` one-liner (`install-remote.sh`), or a clone plus
+  `install.sh`. The global half (playbooks and commands) lands in `~/.claude`
+  and the CLI in `~/.local/bin`; the per-repo half is installed by running
+  `flutter-mobx-kit init` inside the project.
 - `init` / `update` / `sync` / `doctor`, with `--dry-run`, `--force` (backs up
   to `.flutter-mobx-kit-backup/` first), `--only`, and placeholder substitution
   from `pubspec.yaml` and the iOS or Android bundle id.

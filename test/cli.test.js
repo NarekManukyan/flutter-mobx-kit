@@ -52,6 +52,7 @@ function runAllowFail(args) {
 
 /** Minimal Flutter project fixture. */
 function fixture(dir, { appId = 'com.acme.acmeApp' } = {}) {
+  fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(
     path.join(dir, 'pubspec.yaml'),
     'name: acme_app\nenvironment:\n  sdk: \'>=3.8.0-0 <4.0.0\'\ndependencies:\n  flutter:\n    sdk: flutter\n'
@@ -247,6 +248,58 @@ test('doctor reports missing prerequisites, then a clean install', (dir) => {
   assert.match(after.out, /ok\s+playbooks\s+15\/15/);
   // melos scripts and dev deps are still the user's job, so doctor still warns.
   assert.match(after.out, /miss\s+melos scripts/);
+});
+
+test('install.sh installs the global half without npm', (dir) => {
+  // The kit must be installable by clone + shell, not only via npm. The global
+  // half is the playbooks, the commands, and the CLI on PATH.
+  const home = path.join(dir, 'home');
+  fs.mkdirSync(home, { recursive: true });
+  execFileSync('bash', [path.join(ROOT, 'install.sh')], {
+    encoding: 'utf8',
+    stdio: 'pipe',
+    env: { ...process.env, HOME: home },
+  });
+
+  const shipped = fs.readdirSync(path.join(ROOT, 'payload', 'skills'));
+  for (const name of shipped) {
+    assert.ok(
+      has(home, '.claude', 'skills', name, 'SKILL.md'),
+      `playbook ${name} must be installed`
+    );
+  }
+  assert.ok(has(home, '.claude', 'commands', 'build-feature.md'), 'commands');
+  assert.ok(has(home, '.local', 'bin', 'flutter-mobx-kit'), 'CLI on PATH');
+});
+
+test('the shell-installed CLI can init a project', (dir) => {
+  const home = path.join(dir, 'home');
+  fs.mkdirSync(home, { recursive: true });
+  execFileSync('bash', [path.join(ROOT, 'install.sh')], {
+    stdio: 'pipe',
+    env: { ...process.env, HOME: home },
+  });
+
+  const proj = fixture(path.join(dir, 'proj'), {});
+  execFileSync(path.join(home, '.local', 'bin', 'flutter-mobx-kit'), ['init'], {
+    cwd: proj,
+    stdio: 'pipe',
+  });
+  assert.ok(has(proj, 'AGENTS.md'), 'AGENTS.md');
+  assert.ok(has(proj, 'CLAUDE.md'), 'generated CLAUDE.md');
+  assert.ok(has(proj, 'lib', 'core', 'ui', 'test_id.dart'), 'TestId helper');
+});
+
+test('install scripts are executable and parse', () => {
+  for (const name of ['install.sh', 'install-remote.sh']) {
+    const f = path.join(ROOT, name);
+    assert.ok(fs.statSync(f).mode & 0o100, `${name} must be executable`);
+    execFileSync('bash', ['-n', f], { stdio: 'pipe' });
+  }
+  // The one-liner people paste has to point at the real repo and branch.
+  const remote = read(ROOT, 'install-remote.sh');
+  assert.match(remote, /NarekManukyan\/flutter-mobx-kit/);
+  assert.match(remote, /origin main/);
 });
 
 test('every playbook has usable frontmatter', () => {
