@@ -31,6 +31,9 @@ jobs:
           flutter pub get
           melos run deps
 
+      # Generated sources (*.g.dart, lib/gen/) are gitignored, so a clean CI
+      # checkout has none of them. `build` must therefore also generate the
+      # localization keys, or every LocaleKeys reference fails to analyze.
       - name: Codegen
         run: melos run build
 

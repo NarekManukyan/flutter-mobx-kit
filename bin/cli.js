@@ -208,6 +208,23 @@ const MELOS_SNIPPET = `    # --- flutter-mobx-kit ------------------------------
       description: Happy-path flows only — the PR gate
       run: maestro test .maestro --include-tags happy --exclude-tags quarantine
 
+    # Generated sources are gitignored, so a clean checkout has none of them.
+    # Codegen has to include the localization keys or nothing referencing
+    # LocaleKeys will analyze, and the generator's output needs formatting or
+    # format:check fails on a file nobody edited.
+    build:
+      description: Codegen for the app and every package
+      run: |
+        melos run translations && \\
+        dart run build_runner build -d && \\
+        melos exec -c 1 -- "dart run build_runner build -d"
+
+    translations:
+      description: Generate localization keys
+      run: |
+        dart run easy_localization:generate -f keys -O lib/gen -o locale_keys.g.dart -S assets/translations -s en-US.json -u true && \\
+        dart format lib/gen/locale_keys.g.dart
+
     format:
       description: Format everything
       run: dart format lib test packages tool
