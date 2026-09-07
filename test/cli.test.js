@@ -302,6 +302,69 @@ test('install scripts are executable and parse', () => {
   assert.match(remote, /origin main/);
 });
 
+test('the drift check detects a divergent playbook', (dir) => {
+  // A check that cannot fail is worse than no check, so prove it fires.
+  // `--fix` writes into the kit it is run from, so run a COPY of this repo,
+  // never the working tree.
+  const kit = path.join(dir, 'kit');
+  fs.mkdirSync(kit, { recursive: true });
+  for (const d of ['tool', 'skills', 'commands', 'payload']) {
+    fs.cpSync(path.join(ROOT, d), path.join(kit, d), { recursive: true });
+  }
+
+  // A minimal boilerplate holding the same content, laid out the way it is there.
+  const bp = path.join(dir, 'boilerplate');
+  fs.mkdirSync(path.join(bp, '.claude'), { recursive: true });
+  fs.cpSync(path.join(kit, 'skills'), path.join(bp, '.claude', 'skills'), { recursive: true });
+  fs.cpSync(path.join(kit, 'commands'), path.join(bp, '.claude', 'commands'), { recursive: true });
+  fs.cpSync(path.join(kit, 'payload', 'docs'), path.join(bp, 'docs'), { recursive: true });
+  for (const [from, to] of [
+    ['payload/tool/sync_agents.sh', 'tool/sync_agents.sh'],
+    ['payload/test/helpers/pump_app.dart', 'test/helpers/pump_app.dart'],
+    ['payload/lib/core/ui/test_id.dart', 'lib/core/ui/test_id.dart'],
+  ]) {
+    const dest = path.join(bp, to);
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.copyFileSync(path.join(kit, from), dest);
+  }
+  fs.writeFileSync(
+    path.join(bp, 'AGENTS.md'),
+    read(kit, 'payload', 'AGENTS.md')
+      .replace(/\*\*\{\{PROJECT_NAME\}\}\*\* — Flutter app on the team's standard stack:/, 'Flutter mobile boilerplate:')
+      .replace(/\{\{APP_ID\}\}/g, 'com.example.flutterBoilerplate')
+  );
+
+  const check = (args = []) => {
+    try {
+      const out = execFileSync(
+        'node',
+        [path.join(kit, 'tool', 'check-drift.js'), '--boilerplate', bp, ...args],
+        { encoding: 'utf8', stdio: 'pipe' }
+      );
+      return { out, status: 0 };
+    } catch (e) {
+      return { out: (e.stdout || '') + (e.stderr || ''), status: e.status };
+    }
+  };
+
+  assert.strictEqual(check().status, 0, 'identical trees must pass');
+
+  fs.appendFileSync(path.join(bp, '.claude', 'skills', 'create-dto', 'SKILL.md'), '\nnew rule\n');
+  const red = check();
+  assert.notStrictEqual(red.status, 0, 'drift must fail the check');
+  assert.match(red.out, /create-dto/);
+
+  check(['--fix']);
+  assert.strictEqual(check().status, 0, '--fix must bring them back in sync');
+  assert.match(read(kit, 'skills', 'create-dto', 'SKILL.md'), /new rule/);
+
+  // and the working tree is untouched
+  assert.ok(
+    !read(ROOT, 'skills', 'create-dto', 'SKILL.md').includes('new rule'),
+    'the test must not write into the real repo'
+  );
+});
+
 test('every playbook has usable frontmatter', () => {
   const skills = path.join(ROOT, 'skills');
   const names = fs.readdirSync(skills);

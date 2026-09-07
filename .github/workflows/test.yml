@@ -50,6 +50,28 @@ jobs:
           test -f /tmp/proj/AGENTS.md
           test -f /tmp/proj/lib/core/ui/test_id.dart
 
+  drift:
+    name: In sync with the boilerplate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Both repos hold real copies of the playbooks and ADRs on purpose: the
+      # boilerplate is a GitHub template, so a generated app is cloned alone and
+      # every file an agent reads has to be a real file in it. Cross-repo
+      # symlinks do not survive a clone. This is what stops the copies diverging.
+      - name: Check out the boilerplate
+        uses: actions/checkout@v4
+        with:
+          repository: NarekManukyan/flutter_boilerplate
+          path: .boilerplate
+
+      - name: Compare
+        run: node tool/check-drift.js --boilerplate .boilerplate
+
   pack:
     name: Package installs and runs from the tarball
     runs-on: ubuntu-latest

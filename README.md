@@ -198,8 +198,19 @@ payload/                   the per-repo half, copied into a project by `init`
 ## Contributing
 
 ```bash
-npm test        # 19 installer tests, no framework
+npm test           # 23 installer tests, no framework
+npm run check-drift # compare the shared files against the boilerplate
 ```
+
+### Why the same files live in two repos
+
+`flutter_boilerplate` is used as a GitHub template, so a generated app is cloned on its own by someone who does not have this kit. Every file an agent reads has to be a real file in that repo. Cross-repo symlinks do not survive: git stores the literal target path, so after a clone the link dangles silently, and Windows checkouts turn them into text files.
+
+So both repos hold real copies, and `tool/check-drift.js` is what stops them diverging. It runs in CI against the boilerplate's `main`, normalizes the `{{APP_ID}}` and `{{PROJECT_NAME}}` placeholders, and fails on any difference in the playbooks, ADRs, `AGENTS.md`, `sync_agents.sh`, the test harness or `TestId`.
+
+The boilerplate is the source. Its copies have to compile and pass tests, so they are the ones that get proven; the copies here are inert text. Pull changes in with `node tool/check-drift.js --boilerplate <path> --fix`, which preserves the placeholders.
+
+Three things are deliberately different and not compared: `.maestro/**` (generic templates here, real flows there), `.github/workflows/**` (the E2E skip notice differs), and the `AGENTS.md` project overview.
 
 Playbooks live in `payload/skills/`. The frontmatter `name` must match the directory name — a test enforces it. Any new placeholder needs a case in `substitute()` in the CLI, and the placeholder test will fail until it has one.
 

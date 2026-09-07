@@ -41,6 +41,7 @@
   "author": "NarekManukyan",
   "license": "MIT",
   "scripts": {
-    "test": "node test/cli.test.js"
+    "test": "node test/cli.test.js",
+    "check-drift": "node tool/check-drift.js --boilerplate ../flutter_boilerplate"
   }
 }

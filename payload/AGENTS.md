@@ -48,6 +48,8 @@ The playbook has the rest, including when to split work across parallel agents (
 
 ## Commands
 
+If `ios/` or `android/` are absent, generate them with `flutter create --platforms=ios,android --org com.yourcompany .`. The boilerplate does not ship them, because each app needs its own bundle id and signing identity. Everything except building or running on a device works without them, so do not treat their absence as a broken checkout.
+
 ```bash
 flutter run -t lib/main_dev.dart     # dev flavor
 flutter run -t lib/main_prod.dart    # prod flavor
