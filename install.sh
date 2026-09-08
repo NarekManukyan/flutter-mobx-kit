@@ -33,6 +33,9 @@ mkdir -p "$HOME/.claude/commands" "$HOME/.claude/skills" "$HOME/.local/bin"
 # Fail before touching anything rather than half-installing. A non-writable
 # ~/.claude/skills is usually the residue of an earlier sudo install, and the
 # raw `cp: ...: Permission denied` mid-loop tells nobody how to fix it.
+owner_of() { stat -c '%U' "$1" 2>/dev/null || stat -f '%Su' "$1" 2>/dev/null; }
+mode_of()  { stat -c '%a' "$1" 2>/dev/null || stat -f '%Lp' "$1" 2>/dev/null; }
+
 blocked=""
 for d in "$HOME/.claude" "$HOME/.claude/commands" "$HOME/.claude/skills" "$HOME/.local/bin"; do
   [ -w "$d" ] || blocked="$blocked $d"
@@ -41,14 +44,14 @@ done
 if [ -n "$blocked" ]; then
   echo "Cannot write to:" >&2
   for d in $blocked; do
-    echo "  $d  (owner $(stat -f '%Su' "$d" 2>/dev/null || stat -c '%U' "$d" 2>/dev/null), mode $(stat -f '%Lp' "$d" 2>/dev/null || stat -c '%a' "$d" 2>/dev/null))" >&2
+    echo "  $d  (owner $(owner_of "$d"), mode $(mode_of "$d"))" >&2
   done
   echo >&2
   echo "Nothing was installed. Fix the ones that apply, then re-run:" >&2
   echo >&2
   me="$(id -un)"
   for d in $blocked; do
-    owner="$(stat -f '%Su' "$d" 2>/dev/null || stat -c '%U' "$d" 2>/dev/null)"
+    owner="$(owner_of "$d")"
     if [ "$owner" != "$me" ]; then
       # Someone else owns it, almost always root from an earlier sudo install.
       echo "  sudo chown -R \"$me\" \"$d\"" >&2
