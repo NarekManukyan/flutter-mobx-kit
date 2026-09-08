@@ -290,6 +290,80 @@ test('the shell-installed CLI can init a project', (dir) => {
   assert.ok(has(proj, 'lib', 'core', 'ui', 'test_id.dart'), 'TestId helper');
 });
 
+test('install.sh refuses a non-writable ~/.claude/skills instead of half-installing', (dir) => {
+  // What Karen hit: `cp: ~/.claude/skills/add-design-token: Permission denied`
+  // partway through, after the commands had already been written.
+  const home = path.join(dir, 'home');
+  fs.mkdirSync(path.join(home, '.claude', 'skills'), { recursive: true });
+  fs.chmodSync(path.join(home, '.claude', 'skills'), 0o555);
+
+  let status = 0;
+  let out = '';
+  try {
+    out = execFileSync('bash', [path.join(ROOT, 'install.sh')], {
+      encoding: 'utf8',
+      stdio: 'pipe',
+      env: { ...process.env, HOME: home },
+    });
+  } catch (e) {
+    status = e.status;
+    out = (e.stdout || '') + (e.stderr || '');
+  }
+
+  fs.chmodSync(path.join(home, '.claude', 'skills'), 0o755);
+
+  assert.notStrictEqual(status, 0, 'must fail, not continue');
+  assert.match(out, /Cannot write to/);
+  assert.match(out, /Nothing was installed/);
+  // The remedy has to match the cause: this dir is owned by the user, so the
+  // fix is chmod. Telling them to chown their own directory does nothing.
+  assert.match(out, /chmod -R u\+w/);
+  assert.ok(
+    !fs.existsSync(path.join(home, '.claude', 'commands', 'build-feature.md')),
+    'must not leave a half install behind'
+  );
+});
+
+test('install.sh replaces a symlinked skill rather than writing through it', (dir) => {
+  const home = path.join(dir, 'home');
+  const outside = path.join(dir, 'outside', 'add-design-token');
+  fs.mkdirSync(path.join(home, '.claude', 'skills'), { recursive: true });
+  fs.mkdirSync(outside, { recursive: true });
+  fs.writeFileSync(path.join(outside, 'SKILL.md'), 'OLD\n');
+  fs.symlinkSync(outside, path.join(home, '.claude', 'skills', 'add-design-token'));
+
+  execFileSync('bash', [path.join(ROOT, 'install.sh')], {
+    stdio: 'pipe',
+    env: { ...process.env, HOME: home },
+  });
+
+  const dest = path.join(home, '.claude', 'skills', 'add-design-token');
+  assert.ok(!fs.lstatSync(dest).isSymbolicLink(), 'must become a real directory');
+  assert.strictEqual(read(outside, 'SKILL.md'), 'OLD\n', 'must not write through the link');
+  assert.ok(
+    has(home, '.claude', '.flutter-mobx-kit-backups', 'add-design-token'),
+    'the replaced link should be backed up'
+  );
+});
+
+test('install.sh survives a dangling symlink', (dir) => {
+  const home = path.join(dir, 'home');
+  fs.mkdirSync(path.join(home, '.claude', 'skills'), { recursive: true });
+  fs.symlinkSync('/nonexistent/path', path.join(home, '.claude', 'skills', 'add-design-token'));
+
+  execFileSync('bash', [path.join(ROOT, 'install.sh')], {
+    stdio: 'pipe',
+    env: { ...process.env, HOME: home },
+  });
+
+  const shipped = fs.readdirSync(path.join(ROOT, 'skills')).length;
+  assert.strictEqual(
+    fs.readdirSync(path.join(home, '.claude', 'skills')).length,
+    shipped,
+    'every playbook should still land'
+  );
+});
+
 test('install scripts are executable and parse', () => {
   for (const name of ['install.sh', 'install-remote.sh']) {
     const f = path.join(ROOT, name);

@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- The installer now checks that `~/.claude`, `~/.claude/skills`, `~/.claude/commands`
+  and `~/.local/bin` are writable **before** copying anything, and refuses to run as
+  root. Reported from the team: a non-writable `~/.claude/skills` produced a bare
+  `cp: ...: Permission denied` partway through, after the commands had already been
+  installed, leaving a half-installed state and no indication of the fix. It now
+  prints the owner and mode, gives the `chown` or `chmod` that matches the cause,
+  and installs nothing.
+- An existing skill that is a symlink is moved aside and replaced instead of being
+  written through, so the link's target is left alone. Dangling symlinks no longer
+  abort the install.
+
 ## 0.1.0
 
 First release. Extracted from the team's Flutter boilerplate, and verified by

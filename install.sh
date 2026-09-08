@@ -21,7 +21,46 @@ for d in skills commands payload; do
   [ -d "$SRC/$d" ] || { echo "error: $d/ not found next to install.sh" >&2; exit 1; }
 done
 
-mkdir -p "$HOME/.claude/commands" "$HOME/.claude/skills"
+if [ "$(id -u)" = "0" ] && [ -n "${SUDO_USER:-}" ]; then
+  echo "Do not run this with sudo. It installs into your own home directory," >&2
+  echo "and running as root leaves root-owned files in ~/.claude that your normal" >&2
+  echo "account then cannot overwrite. Re-run it as yourself." >&2
+  exit 1
+fi
+
+mkdir -p "$HOME/.claude/commands" "$HOME/.claude/skills" "$HOME/.local/bin"
+
+# Fail before touching anything rather than half-installing. A non-writable
+# ~/.claude/skills is usually the residue of an earlier sudo install, and the
+# raw `cp: ...: Permission denied` mid-loop tells nobody how to fix it.
+blocked=""
+for d in "$HOME/.claude" "$HOME/.claude/commands" "$HOME/.claude/skills" "$HOME/.local/bin"; do
+  [ -w "$d" ] || blocked="$blocked $d"
+done
+
+if [ -n "$blocked" ]; then
+  echo "Cannot write to:" >&2
+  for d in $blocked; do
+    echo "  $d  (owner $(stat -f '%Su' "$d" 2>/dev/null || stat -c '%U' "$d" 2>/dev/null), mode $(stat -f '%Lp' "$d" 2>/dev/null || stat -c '%a' "$d" 2>/dev/null))" >&2
+  done
+  echo >&2
+  echo "Nothing was installed. Fix the ones that apply, then re-run:" >&2
+  echo >&2
+  me="$(id -un)"
+  for d in $blocked; do
+    owner="$(stat -f '%Su' "$d" 2>/dev/null || stat -c '%U' "$d" 2>/dev/null)"
+    if [ "$owner" != "$me" ]; then
+      # Someone else owns it, almost always root from an earlier sudo install.
+      echo "  sudo chown -R \"$me\" \"$d\"" >&2
+    else
+      # You own it but stripped your own write bit.
+      echo "  chmod -R u+w \"$d\"" >&2
+    fi
+  done
+  echo >&2
+  echo "Then re-run this installer WITHOUT sudo." >&2
+  exit 1
+fi
 
 echo "Installing commands -> ~/.claude/commands/"
 cp "$SRC"/commands/*.md "$HOME/.claude/commands/"
@@ -36,12 +75,15 @@ echo "Installing playbooks -> ~/.claude/skills/"
 BACKUP_DIR="$HOME/.claude/.flutter-mobx-kit-backups"
 for s in "$SRC"/skills/*/; do
   name="$(basename "$s")"
-  if [ -d "$HOME/.claude/skills/$name" ]; then
+  dest="$HOME/.claude/skills/$name"
+  # -e misses a dangling symlink, and a symlinked skill must be replaced rather
+  # than written through, or cp copies into whatever it points at.
+  if [ -e "$dest" ] || [ -L "$dest" ]; then
     mkdir -p "$BACKUP_DIR"
     rm -rf "${BACKUP_DIR:?}/$name"
-    mv "$HOME/.claude/skills/$name" "$BACKUP_DIR/$name"
+    mv "$dest" "$BACKUP_DIR/$name"
   fi
-  cp -R "$s" "$HOME/.claude/skills/$name"
+  cp -R "$s" "$dest"
   echo "  - $name"
 done
 
@@ -49,7 +91,6 @@ done
 # only applies INSIDE Claude Code — a real terminal never sees it. ~/.local/bin
 # is the conventional user bin dir and is already on most PATHs.
 echo "Installing CLI -> ~/.local/bin/flutter-mobx-kit"
-mkdir -p "$HOME/.local/bin"
 chmod +x "$SRC/bin/cli.js" 2>/dev/null || true
 ln -sf "$SRC/bin/cli.js" "$HOME/.local/bin/flutter-mobx-kit"
 

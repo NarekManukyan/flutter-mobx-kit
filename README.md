@@ -148,6 +148,10 @@ flutter-mobx-kit update                  # refresh playbooks to this version
 
 Node 18+ is needed for the CLI. The playbooks and commands do not need it.
 
+**Do not run the installer with `sudo`.** It writes into your own home directory, and running it as root leaves root-owned files in `~/.claude` that your normal account then cannot overwrite. The installer refuses to run as root for that reason. Note also that `sudo curl ... | bash` does not do what it looks like: `sudo` applies to `curl`, and `bash` still runs as you.
+
+If it reports that it cannot write to `~/.claude/skills`, that directory is usually the residue of an earlier `sudo` install. It prints the exact `chown` or `chmod` to run, picks whichever matches the cause, and installs nothing until it is fixed.
+
 ## After `init`
 
 The installer prints these; they are the parts it will not do to your `pubspec.yaml` unasked.
@@ -198,7 +202,7 @@ payload/                   the per-repo half, copied into a project by `init`
 ## Contributing
 
 ```bash
-npm test           # 23 installer tests, no framework
+npm test           # 26 installer tests, no framework
 npm run check-drift # compare the shared files against the boilerplate
 ```
 
