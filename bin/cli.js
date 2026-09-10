@@ -38,17 +38,44 @@ const fail = (msg) => {
 
 // ------------------------------------------------------------------ args ---
 
+// Flags that take a value. Anything else is a boolean, so `--force` does not
+// swallow the next argument.
+const VALUE_FLAGS = new Set(['dir', 'only', 'project-name', 'app-id']);
+
 function parseArgs(argv) {
   const out = { _: [], flags: {} };
-  for (const a of argv) {
-    if (a.startsWith('--')) {
-      const [k, v] = a.slice(2).split('=');
-      out.flags[k] = v === undefined ? true : v;
-    } else {
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (!a.startsWith('--')) {
       out._.push(a);
+      continue;
+    }
+    const eq = a.indexOf('=');
+    if (eq !== -1) {
+      out.flags[a.slice(2, eq)] = a.slice(eq + 1);
+      continue;
+    }
+    const name = a.slice(2);
+    // Support the spaced form too: `--dir /path` as well as `--dir=/path`.
+    // Without this the flag was set to `true` and the path fell through to the
+    // positionals, and path.resolve(true) threw a raw TypeError at the user.
+    if (VALUE_FLAGS.has(name) && i + 1 < argv.length && !argv[i + 1].startsWith('--')) {
+      out.flags[name] = argv[++i];
+    } else {
+      out.flags[name] = true;
     }
   }
   return out;
+}
+
+/** A value flag given without a value is a typo, not a boolean. */
+function valueFlag(flags, name) {
+  const v = flags[name];
+  if (v === undefined) return undefined;
+  if (typeof v !== 'string' || v === '') {
+    fail(`--${name} needs a value, e.g. --${name}=<value>`);
+  }
+  return v;
 }
 
 // ------------------------------------------------------------------- fs ----
@@ -259,7 +286,7 @@ function melosStatus(root) {
 // --------------------------------------------------------------- commands --
 
 function cmdInit(args) {
-  const root = path.resolve(args.flags.dir || process.cwd());
+  const root = path.resolve(valueFlag(args.flags, 'dir') || process.cwd());
   const opts = { force: !!args.flags.force, dryRun: !!args.flags['dry-run'] };
 
   log('');
@@ -279,12 +306,12 @@ function cmdInit(args) {
 
   const vars = {
     projectName:
-      args.flags['project-name'] || detectProjectName(root) || 'This app',
-    appId: args.flags['app-id'] || detectAppId(root) || 'com.example.app',
+      valueFlag(args.flags, 'project-name') || detectProjectName(root) || 'This app',
+    appId: valueFlag(args.flags, 'app-id') || detectAppId(root) || 'com.example.app',
   };
   log(`  project  ${cyan(vars.projectName)}`);
   log(`  app id   ${cyan(vars.appId)}`);
-  if (!args.flags['app-id'] && !detectAppId(root)) {
+  if (!valueFlag(args.flags, 'app-id') && !detectAppId(root)) {
     warn('bundle id not detected — Maestro flows ship with a placeholder appId');
   }
 
@@ -293,7 +320,8 @@ function cmdInit(args) {
   log(`  tools    ${found.length ? cyan(found.join(', ')) : dim('none detected')}`);
   log('');
 
-  const only = args.flags.only ? String(args.flags.only).split(',') : Object.keys(PARTS);
+  const onlyRaw = valueFlag(args.flags, 'only');
+  const only = onlyRaw ? onlyRaw.split(',') : Object.keys(PARTS);
   const report = { written: [], skipped: [], backedUp: [] };
 
   for (const key of only) {
@@ -357,7 +385,7 @@ function cmdInit(args) {
 }
 
 function cmdSync(args) {
-  const root = path.resolve(args.flags.dir || process.cwd());
+  const root = path.resolve(valueFlag(args.flags, 'dir') || process.cwd());
   const sync = path.join(root, 'tool', 'sync_agents.sh');
   if (!exists(sync)) fail('tool/sync_agents.sh not found. Run `npx flutter-mobx-kit init` first.');
   const argv = args.flags.check ? [sync, '--check'] : [sync];
@@ -370,7 +398,7 @@ function cmdSync(args) {
 }
 
 function cmdDoctor(args) {
-  const root = path.resolve(args.flags.dir || process.cwd());
+  const root = path.resolve(valueFlag(args.flags, 'dir') || process.cwd());
   log('');
   log(bold(`flutter-mobx-kit ${VERSION} — doctor`));
   log(dim(`  ${root}`));

@@ -216,6 +216,31 @@ test('--only installs just that part', (dir) => {
   assert.ok(!has(dir, 'docs', 'adr'), 'ADRs must not be installed');
 });
 
+test('accepts both --flag=value and --flag value', (dir) => {
+  // `--dir <path>` used to set the flag to `true`, so path.resolve(true) threw a
+  // raw TypeError at the user instead of doing the obvious thing.
+  const a = fixture(path.join(dir, 'a'));
+  const b = fixture(path.join(dir, 'b'));
+
+  run(['init', '--dir', a]);
+  run(['init', `--dir=${b}`]);
+
+  assert.ok(has(a, 'AGENTS.md'), 'spaced form must work');
+  assert.ok(has(b, 'AGENTS.md'), 'equals form must work');
+
+  // A boolean flag must not swallow the next argument.
+  const c = fixture(path.join(dir, 'c'));
+  run(['init', '--force', '--dir', c]);
+  assert.ok(has(c, 'AGENTS.md'));
+});
+
+test('a value flag with no value is an error, not a crash', (dir) => {
+  const { status, out } = runAllowFail(['init', '--dir']);
+  assert.notStrictEqual(status, 0);
+  assert.match(out, /--dir needs a value/);
+  assert.ok(!/TypeError|ERR_INVALID_ARG_TYPE/.test(out), 'must not surface a raw node error');
+});
+
 test('rejects an unknown --only part', (dir) => {
   fixture(dir);
   const { status, out } = runAllowFail(['init', `--dir=${dir}`, '--only=nope']);
